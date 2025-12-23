@@ -33,7 +33,7 @@ export function SearchBar({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={placeholder}
-                    className="input-field pl-12 pr-20"
+                    className="input-field pl-14 pr-20"
                 />
 
                 {/* Search Icon */}

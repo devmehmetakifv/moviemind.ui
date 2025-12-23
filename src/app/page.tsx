@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Movie, MovieFilters } from '@/lib/types';
 import { MovieGrid } from '@/components/MovieGrid';
 import { SearchBar } from '@/components/SearchBar';
@@ -10,6 +11,7 @@ import { SortDropdown } from '@/components/SortDropdown';
 import { ErrorState } from '@/components/ErrorState';
 
 export default function HomePage() {
+    const { user } = useAuth();
     const [movies, setMovies] = useState<Movie[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,11 +36,25 @@ export default function HomePage() {
         } finally {
             setLoading(false);
         }
-    }, [page, filters, sort]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, filters, sort, user?.id]);
 
     useEffect(() => {
         fetchMovies();
     }, [fetchMovies]);
+
+    // Refetch when page becomes visible (e.g., navigating back from movie detail)
+    // This ensures not-interested movies are properly filtered out
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && user) {
+                fetchMovies();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [fetchMovies, user]);
 
     const handleSearch = (query: string) => {
         setFilters(prev => ({ ...prev, search: query || undefined }));

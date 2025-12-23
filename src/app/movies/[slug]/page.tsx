@@ -148,12 +148,8 @@ export default function MovieDetailPage() {
 
         try {
             await api.addNotInterested(movie.id);
-            setFeedbackMessage("Got it! We won't show you this movie anymore.");
-
-            // Navigate back after a short delay
-            setTimeout(() => {
-                router.push('/');
-            }, 1500);
+            setFeedbackMessage("Okay, we won't show you this movie anymore!");
+            // Keep user on the page - no redirect
         } catch (err) {
             console.error('Failed to mark as not interested:', err);
             setFeedbackMessage("Something went wrong. Please try again.");
@@ -285,22 +281,25 @@ export default function MovieDetailPage() {
                                 </div>
                             </>
                         )}
-                        <a
-                            href={movie.imdb_url || '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`btn-secondary flex items-center space-x-2 ${!movie.imdb_url ? 'opacity-50 pointer-events-none' : ''}`}
-                        >
-                            <span>🔗</span>
-                            <span>View on IMDb</span>
-                        </a>
-                        <button
-                            onClick={() => setShowFeedback(!showFeedback)}
-                            className="btn-secondary flex items-center space-x-2"
-                        >
-                            <span>📝</span>
-                            <span>Report Error</span>
-                        </button>
+                        {/* View on IMDb and Report Error grouped together for mobile */}
+                        <div className="flex gap-3 w-full sm:w-auto">
+                            <a
+                                href={movie.imdb_url || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`btn-secondary flex-1 sm:flex-none flex items-center justify-center space-x-2 ${!movie.imdb_url ? 'opacity-50 pointer-events-none' : ''}`}
+                            >
+                                <span>🔗</span>
+                                <span>View on IMDb</span>
+                            </a>
+                            <button
+                                onClick={() => setShowFeedback(!showFeedback)}
+                                className="btn-secondary flex-1 sm:flex-none flex items-center justify-center space-x-2"
+                            >
+                                <span>📝</span>
+                                <span>Report Error</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Feedback Form */}
