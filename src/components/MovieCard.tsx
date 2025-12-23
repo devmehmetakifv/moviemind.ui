@@ -15,6 +15,7 @@ export function MovieCard({ movie, explanation, showExplanation = false }: Movie
     const [imageError, setImageError] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
     // Parse genres for badges
     const genres = movie.genres ? movie.genres.split(',').slice(0, 3) : [];
@@ -34,6 +35,16 @@ export function MovieCard({ movie, explanation, showExplanation = false }: Movie
         checkFavorite();
     }, [movie.id]);
 
+    // Auto-hide feedback message after 3 seconds
+    useEffect(() => {
+        if (feedbackMessage) {
+            const timer = setTimeout(() => {
+                setFeedbackMessage(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [feedbackMessage]);
+
     const handleFavoriteClick = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -45,104 +56,132 @@ export function MovieCard({ movie, explanation, showExplanation = false }: Movie
             if (isFavorite) {
                 await api.removeFavorite(movie.id);
                 setIsFavorite(false);
+                setFeedbackMessage("Removed from favorites.");
             } else {
                 await api.addFavorite(movie.id);
                 setIsFavorite(true);
+                setFeedbackMessage("FAVORITE_ADDED");
             }
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
-            // Could show a toast notification here
+            setFeedbackMessage("Something went wrong. Please try again.");
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <Link href={`/movies/${movie.slug}`}>
-            <article className="movie-card glass rounded-2xl overflow-hidden h-full flex flex-col">
-                {/* Poster Image */}
-                <div className="relative aspect-[2/3] bg-dark-800">
-                    {showPlaceholder ? (
-                        <div className="w-full h-full flex items-center justify-center text-dark-500">
-                            <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                            </svg>
-                        </div>
-                    ) : (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                            src={movie.poster_url}
-                            alt={movie.title}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            onError={() => setImageError(true)}
-                        />
-                    )}
-
-                    {/* Rating Badge - Top Left */}
-                    <div className="absolute top-3 left-3 bg-dark-900/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center space-x-1">
-                        <span className="text-yellow-400">★</span>
-                        <span className="text-white font-semibold text-sm">{movie.rating.toFixed(1)}</span>
+        <>
+            {/* Feedback Toast */}
+            {feedbackMessage && (
+                <div className="fixed top-4 right-4 z-50 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="glass bg-dark-800/90 px-6 py-4 rounded-xl shadow-lg border border-dark-600 flex items-center space-x-3">
+                        {(feedbackMessage === "FAVORITE_ADDED" || feedbackMessage.includes("Removed")) && (
+                            <span className="text-green-400">✓</span>
+                        )}
+                        {feedbackMessage.includes("wrong") && (
+                            <span className="text-red-400">✕</span>
+                        )}
+                        {feedbackMessage === "FAVORITE_ADDED" ? (
+                            <p className="text-white">
+                                Added to your favorites.{' '}
+                                <Link href="/favorites" className="text-primary-400 hover:text-primary-300 underline" onClick={(e) => e.stopPropagation()}>
+                                    Click to view
+                                </Link>
+                            </p>
+                        ) : (
+                            <p className="text-white">{feedbackMessage}</p>
+                        )}
                     </div>
+                </div>
+            )}
 
-                    {/* Favorite Heart Button - Top Right */}
-                    <button
-                        onClick={handleFavoriteClick}
-                        disabled={isLoading}
-                        className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isFavorite
+            <Link href={`/movies/${movie.slug}`}>
+                <article className="movie-card glass rounded-2xl overflow-hidden h-full flex flex-col">
+                    {/* Poster Image */}
+                    <div className="relative aspect-[2/3] bg-dark-800">
+                        {showPlaceholder ? (
+                            <div className="w-full h-full flex items-center justify-center text-dark-500">
+                                <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                </svg>
+                            </div>
+                        ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                                src={movie.poster_url}
+                                alt={movie.title}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={() => setImageError(true)}
+                            />
+                        )}
+
+                        {/* Rating Badge - Top Left */}
+                        <div className="absolute top-3 left-3 bg-dark-900/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center space-x-1">
+                            <span className="text-yellow-400">★</span>
+                            <span className="text-white font-semibold text-sm">{movie.rating.toFixed(1)}</span>
+                        </div>
+
+                        {/* Favorite Heart Button - Top Right */}
+                        <button
+                            onClick={handleFavoriteClick}
+                            disabled={isLoading}
+                            className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isFavorite
                                 ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30'
                                 : 'bg-dark-900/80 backdrop-blur-sm text-white hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/30'
-                            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill={isFavorite ? 'currentColor' : 'none'}
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
+                                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                            />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-4 flex-1 flex flex-col">
-                    {/* Title */}
-                    <h3 className="font-bold text-white text-lg line-clamp-2 mb-1">
-                        {movie.title}
-                    </h3>
-
-                    {/* Year & Director */}
-                    <p className="text-dark-400 text-sm mb-3">
-                        {movie.year} • {movie.director}
-                    </p>
-
-                    {/* Genres */}
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        {genres.map((genre) => (
-                            <span key={genre} className="badge text-xs">
-                                {genre.trim()}
-                            </span>
-                        ))}
+                            <svg
+                                className="w-5 h-5"
+                                fill={isFavorite ? 'currentColor' : 'none'}
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                />
+                            </svg>
+                        </button>
                     </div>
 
-                    {/* Recommendation Explanation (Transparency KOG-05) */}
-                    {showExplanation && explanation && (
-                        <div className="mt-auto pt-3 border-t border-dark-700">
-                            <p className="text-xs text-primary-400 flex items-start gap-1">
-                                <span className="flex-shrink-0">💡</span>
-                                <span className="line-clamp-2">{explanation}</span>
-                            </p>
+                    {/* Content */}
+                    <div className="p-4 flex-1 flex flex-col">
+                        {/* Title */}
+                        <h3 className="font-bold text-white text-lg line-clamp-2 mb-1">
+                            {movie.title}
+                        </h3>
+
+                        {/* Year & Director */}
+                        <p className="text-dark-400 text-sm mb-3">
+                            {movie.year} • {movie.director}
+                        </p>
+
+                        {/* Genres */}
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {genres.map((genre) => (
+                                <span key={genre} className="badge text-xs">
+                                    {genre.trim()}
+                                </span>
+                            ))}
                         </div>
-                    )}
-                </div>
-            </article>
-        </Link>
+
+                        {/* Recommendation Explanation (Transparency KOG-05) */}
+                        {showExplanation && explanation && (
+                            <div className="mt-auto pt-3 border-t border-dark-700">
+                                <p className="text-xs text-primary-400 flex items-start gap-1">
+                                    <span className="flex-shrink-0">💡</span>
+                                    <span className="line-clamp-2">{explanation}</span>
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </article>
+            </Link>
+        </>
     );
 }
 

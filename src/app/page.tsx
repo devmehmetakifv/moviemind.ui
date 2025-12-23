@@ -43,7 +43,7 @@ export default function HomePage() {
         fetchMovies();
     }, [fetchMovies]);
 
-    // Refetch when page becomes visible (e.g., navigating back from movie detail)
+    // Refetch when page becomes visible or window regains focus
     // This ensures not-interested movies are properly filtered out
     useEffect(() => {
         const handleVisibilityChange = () => {
@@ -52,8 +52,19 @@ export default function HomePage() {
             }
         };
 
+        const handleFocus = () => {
+            if (user) {
+                fetchMovies();
+            }
+        };
+
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
     }, [fetchMovies, user]);
 
     const handleSearch = (query: string) => {
