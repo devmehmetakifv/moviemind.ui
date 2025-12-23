@@ -102,8 +102,8 @@ export function FilterPanel({ onFilterChange, initialFilters }: FilterPanelProps
                                     key={genre}
                                     onClick={() => handleGenreToggle(genre)}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedGenres.includes(genre)
-                                            ? 'bg-primary-600 text-white'
-                                            : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                                         }`}
                                 >
                                     {genre}
@@ -129,25 +129,22 @@ export function FilterPanel({ onFilterChange, initialFilters }: FilterPanelProps
 
                     {/* Rating Filter */}
                     <div>
-                        <h4 className="text-sm font-medium text-dark-300 mb-3">
-                            Minimum Rating: {minRating !== null ? minRating.toFixed(1) : 'Any'}
-                        </h4>
-                        <input
-                            type="range"
-                            min="0"
-                            max="10"
-                            step="0.5"
-                            value={minRating || 0}
+                        <h4 className="text-sm font-medium text-dark-300 mb-3">Minimum Rating</h4>
+                        <select
+                            value={minRating ?? ''}
                             onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                handleRatingChange(val > 0 ? val : null);
+                                const val = e.target.value ? parseFloat(e.target.value) : null;
+                                handleRatingChange(val);
                             }}
-                            className="w-full accent-primary-500"
-                        />
-                        <div className="flex justify-between text-xs text-dark-400 mt-1">
-                            <span>0</span>
-                            <span>10</span>
-                        </div>
+                            className="input-field"
+                        >
+                            <option value="">Any rating</option>
+                            <option value="5">5+ stars</option>
+                            <option value="6">6+ stars</option>
+                            <option value="7">7+ stars</option>
+                            <option value="8">8+ stars</option>
+                            <option value="9">9+ stars</option>
+                        </select>
                     </div>
                 </div>
             )}

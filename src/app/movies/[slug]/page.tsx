@@ -131,12 +131,15 @@ export default function MovieDetailPage() {
             if (isFavorite) {
                 await api.removeFavorite(movie.id);
                 setIsFavorite(false);
+                setFeedbackMessage("Removed from favorites.");
             } else {
                 await api.addFavorite(movie.id);
                 setIsFavorite(true);
+                setFeedbackMessage("FAVORITE_ADDED");
             }
         } catch (err) {
             console.error('Failed to toggle favorite:', err);
+            setFeedbackMessage("Something went wrong. Please try again.");
         }
     };
 
@@ -149,7 +152,7 @@ export default function MovieDetailPage() {
         try {
             await api.addNotInterested(movie.id);
             setFeedbackMessage("Okay, we won't show you this movie anymore!");
-            // Keep user on the page - no redirect
+            setIsNotInteresting(false); // Reset spinner after success
         } catch (err) {
             console.error('Failed to mark as not interested:', err);
             setFeedbackMessage("Something went wrong. Please try again.");
@@ -178,16 +181,25 @@ export default function MovieDetailPage() {
             {feedbackMessage && (
                 <div className="fixed top-4 right-4 z-50 animate-fade-in">
                     <div className="glass bg-dark-800/90 px-6 py-4 rounded-xl shadow-lg border border-dark-600 flex items-center space-x-3">
-                        {isNotInteresting && !feedbackMessage.includes("won't") && (
+                        {isNotInteresting && feedbackMessage.includes("Updating") && (
                             <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                         )}
-                        {feedbackMessage.includes("won't") && (
+                        {(feedbackMessage.includes("won't") || feedbackMessage === "FAVORITE_ADDED" || feedbackMessage.includes("Removed")) && (
                             <span className="text-green-400">✓</span>
                         )}
                         {feedbackMessage.includes("wrong") && (
                             <span className="text-red-400">✕</span>
                         )}
-                        <p className="text-white">{feedbackMessage}</p>
+                        {feedbackMessage === "FAVORITE_ADDED" ? (
+                            <p className="text-white">
+                                Added to your favorites.{' '}
+                                <Link href="/favorites" className="text-primary-400 hover:text-primary-300 underline">
+                                    Click to view
+                                </Link>
+                            </p>
+                        ) : (
+                            <p className="text-white">{feedbackMessage}</p>
+                        )}
                     </div>
                 </div>
             )}

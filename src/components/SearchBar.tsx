@@ -17,7 +17,7 @@ export function SearchBar({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSearch(query);
+        onSearch(query.trim());
     };
 
     const handleClear = () => {
@@ -33,12 +33,12 @@ export function SearchBar({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={placeholder}
-                    className="input-field pl-14 pr-20"
+                    className="input-field pl-12 pr-20"
                 />
 
                 {/* Search Icon */}
                 <svg
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-400"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-400 pointer-events-none"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
