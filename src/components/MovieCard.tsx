@@ -1,9 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Movie } from '@/lib/types';
+import { api } from '@/lib/api';
 
 interface MovieCardProps {
     movie: Movie;
@@ -13,10 +13,49 @@ interface MovieCardProps {
 
 export function MovieCard({ movie, explanation, showExplanation = false }: MovieCardProps) {
     const [imageError, setImageError] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
     // Parse genres for badges
     const genres = movie.genres ? movie.genres.split(',').slice(0, 3) : [];
 
     const showPlaceholder = !movie.poster_url || imageError;
+
+    // Check if movie is already a favorite on mount
+    useEffect(() => {
+        const checkFavorite = async () => {
+            try {
+                const result = await api.checkFavorite(movie.id);
+                setIsFavorite(result);
+            } catch {
+                // User not logged in or error - ignore
+            }
+        };
+        checkFavorite();
+    }, [movie.id]);
+
+    const handleFavoriteClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (isLoading) return;
+
+        setIsLoading(true);
+        try {
+            if (isFavorite) {
+                await api.removeFavorite(movie.id);
+                setIsFavorite(false);
+            } else {
+                await api.addFavorite(movie.id);
+                setIsFavorite(true);
+            }
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+            // Could show a toast notification here
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <Link href={`/movies/${movie.slug}`}>
@@ -39,11 +78,36 @@ export function MovieCard({ movie, explanation, showExplanation = false }: Movie
                         />
                     )}
 
-                    {/* Rating Badge */}
-                    <div className="absolute top-3 right-3 bg-dark-900/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center space-x-1">
+                    {/* Rating Badge - Top Left */}
+                    <div className="absolute top-3 left-3 bg-dark-900/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center space-x-1">
                         <span className="text-yellow-400">★</span>
                         <span className="text-white font-semibold text-sm">{movie.rating.toFixed(1)}</span>
                     </div>
+
+                    {/* Favorite Heart Button - Top Right */}
+                    <button
+                        onClick={handleFavoriteClick}
+                        disabled={isLoading}
+                        className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isFavorite
+                                ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30'
+                                : 'bg-dark-900/80 backdrop-blur-sm text-white hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/30'
+                            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                        <svg
+                            className="w-5 h-5"
+                            fill={isFavorite ? 'currentColor' : 'none'}
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                        </svg>
+                    </button>
                 </div>
 
                 {/* Content */}

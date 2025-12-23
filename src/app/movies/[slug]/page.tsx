@@ -1,18 +1,73 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Movie, Recommendation } from '@/lib/types';
 import { MovieGrid } from '@/components/MovieGrid';
-import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
 import { FeedbackForm } from '@/components/FeedbackForm';
 
+// Skeleton loader for movie detail page
+function MovieDetailSkeleton() {
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Back Button Skeleton */}
+            <div className="h-6 w-32 skeleton rounded mb-6" />
+
+            {/* Movie Details Skeleton */}
+            <div className="grid md:grid-cols-3 gap-8 mb-12">
+                {/* Poster Skeleton */}
+                <div className="md:col-span-1">
+                    <div className="aspect-[2/3] skeleton rounded-2xl" />
+                </div>
+
+                {/* Info Skeleton */}
+                <div className="md:col-span-2 space-y-6">
+                    <div>
+                        <div className="h-10 skeleton w-3/4 rounded mb-2" />
+                        <div className="h-5 skeleton w-1/2 rounded" />
+                    </div>
+
+                    {/* Genres Skeleton */}
+                    <div className="flex flex-wrap gap-2">
+                        <div className="h-8 skeleton w-20 rounded-full" />
+                        <div className="h-8 skeleton w-24 rounded-full" />
+                        <div className="h-8 skeleton w-16 rounded-full" />
+                    </div>
+
+                    {/* Description Skeleton */}
+                    <div className="space-y-2">
+                        <div className="h-4 skeleton w-full rounded" />
+                        <div className="h-4 skeleton w-full rounded" />
+                        <div className="h-4 skeleton w-3/4 rounded" />
+                    </div>
+
+                    {/* Buttons Skeleton */}
+                    <div className="flex flex-wrap gap-4">
+                        <div className="h-12 skeleton w-40 rounded-xl" />
+                        <div className="h-12 skeleton w-36 rounded-xl" />
+                        <div className="h-12 skeleton w-32 rounded-xl" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Recommendations Skeleton */}
+            <div className="h-8 skeleton w-64 rounded mb-6" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} className="aspect-[2/3] skeleton rounded-2xl" />
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function MovieDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const slug = params.slug as string;
     const { user } = useAuth();
 
@@ -23,6 +78,8 @@ export default function MovieDetailPage() {
     const [isFavorite, setIsFavorite] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
     const [posterError, setPosterError] = useState(false);
+    const [isNotInteresting, setIsNotInteresting] = useState(false);
+    const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchData() {
@@ -57,6 +114,16 @@ export default function MovieDetailPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slug, user?.id]);
 
+    // Auto-hide feedback message after 3 seconds
+    useEffect(() => {
+        if (feedbackMessage) {
+            const timer = setTimeout(() => {
+                setFeedbackMessage(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [feedbackMessage]);
+
     const handleToggleFavorite = async () => {
         if (!user || !movie) return;
 
@@ -74,22 +141,28 @@ export default function MovieDetailPage() {
     };
 
     const handleNotInterested = async () => {
-        if (!user || !movie) return;
+        if (!user || !movie || isNotInteresting) return;
+
+        setIsNotInteresting(true);
+        setFeedbackMessage("Updating your preferences...");
 
         try {
             await api.addNotInterested(movie.id);
-            // Could show a toast or redirect
+            setFeedbackMessage("Got it! We won't show you this movie anymore.");
+
+            // Navigate back after a short delay
+            setTimeout(() => {
+                router.push('/');
+            }, 1500);
         } catch (err) {
             console.error('Failed to mark as not interested:', err);
+            setFeedbackMessage("Something went wrong. Please try again.");
+            setIsNotInteresting(false);
         }
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <LoadingState message="Loading movie details..." />
-            </div>
-        );
+        return <MovieDetailSkeleton />;
     }
 
     if (error || !movie) {
@@ -105,6 +178,24 @@ export default function MovieDetailPage() {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Feedback Toast */}
+            {feedbackMessage && (
+                <div className="fixed top-4 right-4 z-50 animate-fade-in">
+                    <div className="glass bg-dark-800/90 px-6 py-4 rounded-xl shadow-lg border border-dark-600 flex items-center space-x-3">
+                        {isNotInteresting && !feedbackMessage.includes("won't") && (
+                            <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                        )}
+                        {feedbackMessage.includes("won't") && (
+                            <span className="text-green-400">✓</span>
+                        )}
+                        {feedbackMessage.includes("wrong") && (
+                            <span className="text-red-400">✕</span>
+                        )}
+                        <p className="text-white">{feedbackMessage}</p>
+                    </div>
+                </div>
+            )}
+
             {/* Back Button */}
             <Link href="/" className="inline-flex items-center text-dark-300 hover:text-white mb-6 transition-colors">
                 <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,31 +257,39 @@ export default function MovieDetailPage() {
                         {movie.description}
                     </p>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-4">
+                    {/* Action Buttons - Mobile Responsive */}
+                    <div className="flex flex-wrap gap-3">
                         {user && (
                             <>
-                                <button
-                                    onClick={handleToggleFavorite}
-                                    className={`btn-primary flex items-center space-x-2 ${isFavorite ? 'bg-pink-600 hover:bg-pink-500' : ''}`}
-                                >
-                                    <span>{isFavorite ? '❤️' : '🤍'}</span>
-                                    <span>{isFavorite ? 'Favorited' : 'Add to Favorites'}</span>
-                                </button>
-                                <button
-                                    onClick={handleNotInterested}
-                                    className="btn-secondary flex items-center space-x-2"
-                                >
-                                    <span>🚫</span>
-                                    <span>Not Interested</span>
-                                </button>
+                                {/* Favorites and Not Interested grouped together for mobile */}
+                                <div className="flex gap-3 w-full sm:w-auto">
+                                    <button
+                                        onClick={handleToggleFavorite}
+                                        className={`btn-primary flex-1 sm:flex-none flex items-center justify-center space-x-2 ${isFavorite ? 'bg-pink-600 hover:bg-pink-500' : ''}`}
+                                    >
+                                        <span>{isFavorite ? '❤️' : '🤍'}</span>
+                                        <span>{isFavorite ? 'Favorited' : 'Add to Favorites'}</span>
+                                    </button>
+                                    <button
+                                        onClick={handleNotInterested}
+                                        disabled={isNotInteresting}
+                                        className={`btn-secondary flex-1 sm:flex-none flex items-center justify-center space-x-2 ${isNotInteresting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {isNotInteresting ? (
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <span>🚫</span>
+                                        )}
+                                        <span>Not Interested</span>
+                                    </button>
+                                </div>
                             </>
                         )}
                         <a
-                            href={movie.imdb_url}
+                            href={movie.imdb_url || '#'}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn-secondary flex items-center space-x-2"
+                            className={`btn-secondary flex items-center space-x-2 ${!movie.imdb_url ? 'opacity-50 pointer-events-none' : ''}`}
                         >
                             <span>🔗</span>
                             <span>View on IMDb</span>
@@ -231,3 +330,4 @@ export default function MovieDetailPage() {
         </div>
     );
 }
+
