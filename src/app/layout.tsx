@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { Navbar } from '@/components/Navbar';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -21,15 +22,17 @@ export default function RootLayout({
         <html lang="en">
             <body className={inter.className}>
                 <AuthProvider>
-                    <div className="min-h-screen flex flex-col">
-                        <Navbar />
-                        <main className="flex-1">
-                            {children}
-                        </main>
-                        <footer className="py-6 text-center text-dark-400 border-t border-dark-800">
-                            <p>© 2024 Moviemind. Built with ❤️ for Software Quality Standards.</p>
-                        </footer>
-                    </div>
+                    <FavoritesProvider>
+                        <div className="min-h-screen flex flex-col">
+                            <Navbar />
+                            <main className="flex-1">
+                                {children}
+                            </main>
+                            <footer className="py-6 text-center text-dark-400 border-t border-dark-800">
+                                <p>© 2024 Moviemind. Built with ❤️ for Software Quality Standards.</p>
+                            </footer>
+                        </div>
+                    </FavoritesProvider>
                 </AuthProvider>
             </body>
         </html>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import type { Favorite } from '@/lib/types';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { MovieCard } from '@/components/MovieCard';
 import { LoadingState } from '@/components/LoadingState';
@@ -10,6 +11,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { EmptyState } from '@/components/EmptyState';
 
 function FavoritesContent() {
+    const { toggleFavorite } = useFavorites();
     const [favorites, setFavorites] = useState<Favorite[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,9 @@ function FavoritesContent() {
 
     const handleRemoveFavorite = async (movieId: number) => {
         try {
-            await api.removeFavorite(movieId);
+            // Route through context so the shared favorite Set stays in sync
+            // (keeps hearts consistent across cards/detail without extra calls).
+            await toggleFavorite(movieId);
             setFavorites(favorites.filter(f => f.movie_id !== movieId));
         } catch (err) {
             console.error('Failed to remove favorite:', err);

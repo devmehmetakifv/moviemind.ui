@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import type { Movie } from '@/lib/types';
-import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 interface MovieCardProps {
     movie: Movie;
@@ -12,28 +13,18 @@ interface MovieCardProps {
 }
 
 export function MovieCard({ movie, explanation, showExplanation = false }: MovieCardProps) {
+    const { user } = useAuth();
+    const { isFavorite, toggleFavorite } = useFavorites();
     const [imageError, setImageError] = useState(false);
-    const [isFavorite, setIsFavorite] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+
+    const favorite = isFavorite(movie.id);
 
     // Parse genres for badges
     const genres = movie.genres ? movie.genres.split(',').slice(0, 3) : [];
 
     const showPlaceholder = !movie.poster_url || imageError;
-
-    // Check if movie is already a favorite on mount
-    useEffect(() => {
-        const checkFavorite = async () => {
-            try {
-                const result = await api.checkFavorite(movie.id);
-                setIsFavorite(result);
-            } catch {
-                // User not logged in or error - ignore
-            }
-        };
-        checkFavorite();
-    }, [movie.id]);
 
     // Auto-hide feedback message after 3 seconds
     useEffect(() => {
@@ -51,17 +42,15 @@ export function MovieCard({ movie, explanation, showExplanation = false }: Movie
 
         if (isLoading) return;
 
+        if (!user) {
+            setFeedbackMessage("Sign in to save favorites.");
+            return;
+        }
+
         setIsLoading(true);
         try {
-            if (isFavorite) {
-                await api.removeFavorite(movie.id);
-                setIsFavorite(false);
-                setFeedbackMessage("Removed from favorites.");
-            } else {
-                await api.addFavorite(movie.id);
-                setIsFavorite(true);
-                setFeedbackMessage("FAVORITE_ADDED");
-            }
+            const nowFavorite = await toggleFavorite(movie.id);
+            setFeedbackMessage(nowFavorite ? "FAVORITE_ADDED" : "Removed from favorites.");
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
             setFeedbackMessage("Something went wrong. Please try again.");
@@ -126,15 +115,15 @@ export function MovieCard({ movie, explanation, showExplanation = false }: Movie
                         <button
                             onClick={handleFavoriteClick}
                             disabled={isLoading}
-                            className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isFavorite
+                            className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${favorite
                                 ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30'
                                 : 'bg-dark-900/80 backdrop-blur-sm text-white hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/30'
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                            aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
                         >
                             <svg
                                 className="w-5 h-5"
-                                fill={isFavorite ? 'currentColor' : 'none'}
+                                fill={favorite ? 'currentColor' : 'none'}
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
                                 strokeWidth={2}

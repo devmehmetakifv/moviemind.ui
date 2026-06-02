@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import type { Movie, Recommendation } from '@/lib/types';
 import { MovieGrid } from '@/components/MovieGrid';
 import { ErrorState } from '@/components/ErrorState';
@@ -70,12 +71,12 @@ export default function MovieDetailPage() {
     const router = useRouter();
     const slug = params.slug as string;
     const { user } = useAuth();
+    const { isFavorite, toggleFavorite } = useFavorites();
 
     const [movie, setMovie] = useState<Movie | null>(null);
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isFavorite, setIsFavorite] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
     const [posterError, setPosterError] = useState(false);
     const [isNotInteresting, setIsNotInteresting] = useState(false);
@@ -95,12 +96,6 @@ export default function MovieDetailPage() {
                 // Then fetch recommendations using movie.id
                 const recsData = await api.getRecommendations(movieData.id);
                 setRecommendations(recsData.recommendations);
-
-                // Check if favorited
-                if (user) {
-                    const fav = await api.checkFavorite(movieData.id);
-                    setIsFavorite(fav);
-                }
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load movie');
             } finally {
@@ -128,15 +123,8 @@ export default function MovieDetailPage() {
         if (!user || !movie) return;
 
         try {
-            if (isFavorite) {
-                await api.removeFavorite(movie.id);
-                setIsFavorite(false);
-                setFeedbackMessage("Removed from favorites.");
-            } else {
-                await api.addFavorite(movie.id);
-                setIsFavorite(true);
-                setFeedbackMessage("FAVORITE_ADDED");
-            }
+            const nowFavorite = await toggleFavorite(movie.id);
+            setFeedbackMessage(nowFavorite ? "FAVORITE_ADDED" : "Removed from favorites.");
         } catch (err) {
             console.error('Failed to toggle favorite:', err);
             setFeedbackMessage("Something went wrong. Please try again.");
@@ -174,6 +162,7 @@ export default function MovieDetailPage() {
 
     const genres = movie.genres ? movie.genres.split(',').map(g => g.trim()) : [];
     const showPosterPlaceholder = !movie.poster_url || posterError;
+    const favorite = isFavorite(movie.id);
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -273,10 +262,10 @@ export default function MovieDetailPage() {
                                 <div className="flex gap-3 w-full sm:w-auto">
                                     <button
                                         onClick={handleToggleFavorite}
-                                        className={`btn-primary flex-1 sm:flex-none flex items-center justify-center space-x-2 ${isFavorite ? 'bg-pink-600 hover:bg-pink-500' : ''}`}
+                                        className={`btn-primary flex-1 sm:flex-none flex items-center justify-center space-x-2 ${favorite ? 'bg-pink-600 hover:bg-pink-500' : ''}`}
                                     >
-                                        <span>{isFavorite ? '❤️' : '🤍'}</span>
-                                        <span>{isFavorite ? 'Favorited' : 'Add to Favorites'}</span>
+                                        <span>{favorite ? '❤️' : '🤍'}</span>
+                                        <span>{favorite ? 'Favorited' : 'Add to Favorites'}</span>
                                     </button>
                                     <button
                                         onClick={handleNotInterested}
