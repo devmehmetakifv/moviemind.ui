@@ -29,7 +29,7 @@ export default function RootLayout({
                                 {children}
                             </main>
                             <footer className="py-6 text-center text-dark-400 border-t border-dark-800">
-                                <p>© 2024 Moviemind. Built with ❤️ for Software Quality Standards.</p>
+                                <p>© 2026 Moviemind.</p>
                             </footer>
                         </div>
                     </FavoritesProvider>
