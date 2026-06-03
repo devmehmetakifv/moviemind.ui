@@ -13,7 +13,10 @@ import type {
 } from './types';
 import { getAccessToken } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
+    .trim()
+    .replace(/^["']|["']$/g, '') // strip stray quotes
+    .replace(/\/+$/, ''); // strip trailing slash(es)
 
 /**
  * API client for communicating with the backend
